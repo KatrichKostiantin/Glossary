@@ -6,6 +6,7 @@ class Glossary(
     private val charset: Charset = Charset.defaultCharset(),
     private val logger: Logger? = null
 ) {
+    val fileNameGlossary: String = "Glossary.txt"
     val fileReader = FileReader(charset)
 
     var wordsArray = arrayOfNulls<GlossaryWord>(10)
@@ -72,7 +73,7 @@ class Glossary(
     }
 
     public fun writeToDisk(fileDirectory: String = "src/main/resources/") {
-        val file = File(fileDirectory + "Glossary.txt")
+        val file = File(fileDirectory + fileNameGlossary)
         file.createNewFile()
         val stringBuilder = StringBuilder()
         for (i in 0 until size) {
@@ -92,5 +93,15 @@ class Glossary(
             word?.let { result += it.allWordCount() }
         }
         return result
+    }
+
+    public fun getGlossaryFileSize(fileDirectory: String = "src/main/resources/"): Long? {
+        val file = File(fileDirectory + fileNameGlossary)
+        return file.length()
+    }
+
+    public fun getTextDirectorySize(fileDirectory: String = "src/main/resources/texts/"): Long? {
+        val file = File(fileDirectory)
+        return file.walkTopDown().filter { it.isFile }.map { it.length() }.sum()
     }
 }
