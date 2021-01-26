@@ -129,8 +129,8 @@ class Glossary(
     fun search(words: List<String>, searchPredicate: SearchPredicate = SearchPredicate.AND): MutableCollection<String> {
         val glossaryWordList: LinkedList<GlossaryWord> = LinkedList()
         words.forEach {
-            mapOfWordIndex.get(it)?.let { wordindex ->
-                glossaryWordList.add(wordsArray.get(wordindex)!!)
+            mapOfWordIndex.get(it)?.let { wordIndex ->
+                glossaryWordList.add(wordsArray.get(wordIndex)!!)
             }
         }
 
