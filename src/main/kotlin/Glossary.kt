@@ -1,6 +1,8 @@
 import org.slf4j.Logger
 import java.io.File
 import java.nio.charset.Charset
+import java.util.*
+import kotlin.collections.HashMap
 
 class Glossary(
     private val charset: Charset = Charset.defaultCharset(),
@@ -13,18 +15,21 @@ class Glossary(
     private var size = 0
     private var capacity = 10
     private val mapOfWordIndex = HashMap<String, Int>()
+    private val mapFileIndex = HashMap<Int, String>()
+    private var countOfFiles = 0
 
     private enum class FileExtension {
         txt,
         fb2,
     }
 
-    public fun readAllFiles(folderPath: String = "src/main/resources/texts/") {
+    fun readAllFiles(folderPath: String = "src/main/resources/texts/") {
         logger?.info("Start reading from directory (path: $folderPath)")
         File(folderPath).walk().forEach { file ->
             if (file.isDirectory) {
                 logger?.debug("File with path ${file.name} is directory")
             } else {
+                mapFileIndex[countOfFiles++] = file.name
                 val fileExtension = FileExtension.valueOf(file.name.substringAfterLast("."))
                 when (fileExtension) {
                     FileExtension.txt -> readAllWordsFromTxtFile(file)
@@ -72,7 +77,7 @@ class Glossary(
         capacity = newSize
     }
 
-    public fun writeToDisk(fileDirectory: String = "src/main/resources/") {
+    fun writeToDisk(fileDirectory: String = "src/main/resources/") {
         val file = File(fileDirectory + fileNameGlossary)
         file.createNewFile()
         val stringBuilder = StringBuilder()
@@ -83,11 +88,11 @@ class Glossary(
         file.writeText(stringBuilder.toString(), charset)
     }
 
-    public fun getSize(): Int {
+    fun getSize(): Int {
         return size
     }
 
-    public fun getCountOfAllWords(): Long {
+    fun getCountOfAllWords(): Long {
         var result = 0L
         wordsArray.forEach { word ->
             word?.let { result += it.allWordCount() }
@@ -95,13 +100,55 @@ class Glossary(
         return result
     }
 
-    public fun getGlossaryFileSize(fileDirectory: String = "src/main/resources/"): Long? {
+    fun getGlossaryFileSize(fileDirectory: String = "src/main/resources/"): Long {
         val file = File(fileDirectory + fileNameGlossary)
         return file.length()
     }
 
-    public fun getTextDirectorySize(fileDirectory: String = "src/main/resources/texts/"): Long? {
+    fun getTextDirectorySize(fileDirectory: String = "src/main/resources/texts/"): Long {
         val file = File(fileDirectory)
         return file.walkTopDown().filter { it.isFile }.map { it.length() }.sum()
+    }
+
+    fun getIdentityMatrix(): Array<Array<Byte?>> {
+        return Array(size) { wordIndex ->
+            Array(countOfFiles) { fileIndex ->
+                if (wordsArray[wordIndex]?.mapFileCount?.contains(mapFileIndex[fileIndex]) == true)
+                    1
+                else
+                    0
+            }
+        }
+    }
+
+    enum class SearchPredicate {
+        AND,
+        OR
+    }
+
+    fun search(words: List<String>, searchPredicate: SearchPredicate = SearchPredicate.AND): MutableCollection<String> {
+        val glossaryWordList: LinkedList<GlossaryWord> = LinkedList()
+        words.forEach {
+            mapOfWordIndex.get(it)?.let { wordindex ->
+                glossaryWordList.add(wordsArray.get(wordindex)!!)
+            }
+        }
+
+        if (searchPredicate == SearchPredicate.AND) {
+            glossaryWordList.sortBy { it.mapFileCount.size } //Сортуємо множини за величиною для того щоб
+            val resultList = mapFileIndex.values
+            glossaryWordList.forEach { glossaryWord ->
+                resultList.retainAll(glossaryWord.mapFileCount.keys)
+            }
+            return resultList
+        }
+        val resultList: MutableCollection<String> = mutableListOf()
+        glossaryWordList.forEach { glossaryWord ->
+            glossaryWord.mapFileCount.keys.forEach { fileName ->
+                if (!resultList.contains(fileName))
+                    resultList.add(fileName)
+            }
+        }
+        return resultList
     }
 }

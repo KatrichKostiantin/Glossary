@@ -7,3 +7,4 @@
 *.ipr
 *.iws
 local.properties
+src/main/resources/Glossary.txt

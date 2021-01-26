@@ -1,13 +1,13 @@
 class GlossaryWord(
     val value: String
 ) {
-    private val mapFileCount = HashMap<String, Int>()
+    val mapFileCount = HashMap<String, Int>()
 
-    public fun processNewFile(fileName: String, wordCount: Int) {
+    fun processNewFile(fileName: String, wordCount: Int) {
         mapFileCount[fileName] = wordCount
     }
 
-    public fun allWordCount(): Int {
+    fun allWordCount(): Int {
         var result = 0
         mapFileCount.values.forEach { result += it }
         return result
