@@ -8,4 +8,4 @@
 *.iws
 local.properties
 src/main/resources/Glossary.txt
-src/test/resources
+src/test/resources/

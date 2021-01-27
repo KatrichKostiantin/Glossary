@@ -41,8 +41,12 @@ internal class ReaderTest {
     fun fileReaderCleanWordWithDotCorrectly() {
         assertEquals("cat", fileReader.cleanWord("cat."))
         assertEquals("cat", fileReader.cleanWord(".cat"))
+        assertEquals("etc", fileReader.cleanWord("etc."))
+        assertEquals("abc", fileReader.cleanWord("abc..."))
+        assertEquals("music", fileReader.cleanWord("music.."))
 
         assertEquals("", fileReader.cleanWord("."))
+        assertEquals("", fileReader.cleanWord(".."))
     }
 
     @Test
