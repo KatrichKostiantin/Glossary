@@ -126,29 +126,47 @@ class Glossary(
         OR
     }
 
-    fun search(words: List<String>, searchPredicate: SearchPredicate = SearchPredicate.AND): MutableCollection<String> {
-        val glossaryWordList: LinkedList<GlossaryWord> = LinkedList()
+    fun search(words: String): List<String>? {
+        mapOfWordIndex.get(words)?.let { wordIndex ->
+            return wordsArray.get(wordIndex)?.mapFileCount?.keys?.toList()
+        }
+        return null
+    }
+
+    fun search(words: List<String>, searchPredicate: SearchPredicate = SearchPredicate.AND): List<String> {
+        val listMultipleFiles: LinkedList<List<String>> = LinkedList()
         words.forEach {
-            mapOfWordIndex.get(it)?.let { wordIndex ->
-                glossaryWordList.add(wordsArray.get(wordIndex)!!)
-            }
+            search(it)?.let {
+                listMultipleFiles.add(it)
+            } ?: listMultipleFiles.add(emptyList())
         }
 
         if (searchPredicate == SearchPredicate.AND) {
-            glossaryWordList.sortBy { it.mapFileCount.size } //Сортуємо множини за величиною для того щоб
-            val resultList = mapFileIndex.values
-            glossaryWordList.forEach { glossaryWord ->
-                resultList.retainAll(glossaryWord.mapFileCount.keys)
+            listMultipleFiles.sortBy { listMultipleFiles.size } //Сортуємо множини за величиною для того щоб
+            var resList = mapFileIndex.values.toList()
+            listMultipleFiles.forEach {
+                resList = findIntersection(resList, it)
             }
-            return resultList
+            return resList
         }
-        val resultList: MutableCollection<String> = mutableListOf()
-        glossaryWordList.forEach { glossaryWord ->
-            glossaryWord.mapFileCount.keys.forEach { fileName ->
+        val resultList: LinkedList<String> = LinkedList<String>()
+        listMultipleFiles.forEach { list ->
+            list.forEach { fileName ->
                 if (!resultList.contains(fileName))
                     resultList.add(fileName)
             }
         }
         return resultList
+    }
+
+    private fun findIntersection(mainList: List<String>, additionList: List<String>): List<String> {
+        val resList = LinkedList<String>()
+
+        mainList.forEach {
+            if (additionList.contains(it))
+                resList.add(it)
+        }
+
+        return resList
     }
 }

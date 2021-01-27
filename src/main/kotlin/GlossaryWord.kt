@@ -35,4 +35,8 @@ class GlossaryWord(
         stringBuilder.deleteCharAt(stringBuilder.length - 1)
         return stringBuilder.toString()
     }
+
+    override fun toString(): String {
+        return "GlossaryWord(value='$value', mapFileCount=$mapFileCount)"
+    }
 }

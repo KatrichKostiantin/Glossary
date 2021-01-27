@@ -8,6 +8,7 @@ fun main() {
 
     val map = glossary.getIdentityMatrix()
 
-    println(glossary.search(listOf("i", "main", "r"), Glossary.SearchPredicate.AND))
-    println(glossary.search(listOf("i", "main", "r"), Glossary.SearchPredicate.OR))
+    println(glossary.search(listOf("oleg", "fffffffffffffffffffffffffffffff"), Glossary.SearchPredicate.AND))
+    println(glossary.search(listOf("oleg", "1"), Glossary.SearchPredicate.AND))
+    println(glossary.search(listOf("oleg", "dwdefrgeda"), Glossary.SearchPredicate.AND))
 }
