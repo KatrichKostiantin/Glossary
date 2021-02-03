@@ -1,15 +1,15 @@
 class GlossaryWord(
     val value: String
 ) {
-    val mapFileCount = HashMap<String, List<Int>>()
+    val mapFileCount = HashMap<String, Int>()
 
-    fun processNewFile(fileName: String, wordPosition: List<Int>) {
-        mapFileCount[fileName] = wordPosition
+    fun processNewFile(fileName: String, wordCount: Int) {
+        mapFileCount[fileName] = wordCount
     }
 
     fun allWordCount(): Int {
         var result = 0
-        mapFileCount.values.forEach { result += it.size }
+        mapFileCount.values.forEach { result += it }
         return result
     }
 
@@ -26,7 +26,7 @@ class GlossaryWord(
         return value.hashCode()
     }
 
-    /*fun toSaveFormat(): String {
+    fun toSaveFormat(): String {
         val stringBuilder = StringBuilder()
         stringBuilder.append(value).append(":")
         mapFileCount.forEach { entry: Map.Entry<String, Int> ->
@@ -34,9 +34,5 @@ class GlossaryWord(
         }
         stringBuilder.deleteCharAt(stringBuilder.length - 1)
         return stringBuilder.toString()
-    }*/
-
-    override fun toString(): String {
-        return "GlossaryWord(value='$value', mapFileCount=$mapFileCount)"
     }
 }
