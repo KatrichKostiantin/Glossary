@@ -16,7 +16,15 @@ class FileReader(
     public fun readTxtFilePhrase(file: File): Map<String, Int> {
         val listOfWords = mutableMapOf<String, Int>()
         val allText = file.readText(charset)
-        splitCleanAddToMapWith(allText, listOfWords)
+        splitCleanAddToMapPhrase(allText, listOfWords)
+
+        return listOfWords
+    }
+
+    public fun readTxtFileWord(file: File): Map<String, Int> {
+        val listOfWords = mutableMapOf<String, Int>()
+        val allText = file.readText(charset)
+        splitCleanAddToMap(allText, listOfWords)
 
         return listOfWords
     }
@@ -45,7 +53,18 @@ class FileReader(
         }
     }
 
-    public fun splitCleanAddToMapWith(allText: String?, listOfWords: MutableMap<String, Int>) {
+    public fun splitCleanAddToMap(allText: String?, listOfWords: MutableMap<String, Int>) {
+        if (allText != null && allText.isNotEmpty()) {
+            val splitWordArray = allText.split("\\s+".toRegex()).toTypedArray()
+            for (i in splitWordArray.indices) {
+                val word = cleanWord(splitWordArray[i])
+                if (word.isNotBlank())
+                    listOfWords[word] = listOfWords.getOrPut(word) { 0 } + 1
+            }
+        }
+    }
+
+    public fun splitCleanAddToMapPhrase(allText: String?, listOfWords: MutableMap<String, Int>) {
         if (allText != null && allText.isNotEmpty()) {
             val splitWordArray = allText.split("\\s+".toRegex()).toTypedArray()
             for (i in splitWordArray.indices) {

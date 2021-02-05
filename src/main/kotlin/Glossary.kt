@@ -1,3 +1,5 @@
+import BTreeNodes.GlossaryNodeDistanceRoot
+import BTreeNodes.GlossaryNodePhraseRoot
 import org.slf4j.Logger
 import java.io.File
 import java.nio.charset.Charset
@@ -13,7 +15,7 @@ class Glossary(
     val fileReader = FileReader(charset)
 
 
-    private val mapOf2GramWord = HashMap<String, ArrayList<GlossaryWordDistance>>()
+    private val mapOf3GramWord = HashMap<String, ArrayList<GlossaryWord>>()
     private val rootGlossaryNodePhrase = GlossaryNodePhraseRoot()
     private val rootGlossaryNodeDistance = GlossaryNodeDistanceRoot()
 
@@ -37,6 +39,7 @@ class Glossary(
                     FileExtension.txt -> {
                         readAllWordsWithDistanceFromTxtFile(file)
                         readAllPhraseFromTxtFile(file)
+                        readAllWord3GramFromTxtFile(file)
                     }
                     //FileExtension.fb2 -> readAllWordsFromFB2File(file)
                     else -> logger?.warn("File with extension $this not supported")
@@ -51,6 +54,15 @@ class Glossary(
 
         newWords.keys.forEach { word ->
             newWords[word]?.let { insertPhrase(word, it, file.name.substringAfterLast("/")) }
+        }
+    }
+
+    private fun readAllWord3GramFromTxtFile(file: File) {
+        val newWords = fileReader.readTxtFileWord(file)
+        logger?.info("File (${file.name}) contains ${newWords.size} unique words.")
+
+        newWords.keys.forEach { word ->
+            newWords[word]?.let { insert3GramWord(word, it, file.name.substringAfterLast("/")) }
         }
     }
 
@@ -71,25 +83,26 @@ class Glossary(
         rootGlossaryNodeDistance.insert(word, fileName = fileName, fileListDistance = distanceList)
     }
 
-    private fun insert2GramWord(word: String, listPosition: LinkedList<Int>, fileName: String) {
+    private fun insert3GramWord(word: String, wordRepeat: Int, fileName: String) {
         val wordKey = "$$word$"
-        for (i in 0..wordKey.length - 2) {
-            val mapKey = wordKey.substring(i, i + 2)
-            val arrayOfWord = mapOf2GramWord.getOrPut(mapKey) { arrayListOf() }
+        for (i in 0..wordKey.length - 3) {
+            val mapKey = wordKey.substring(i, i + 3)
+            val arrayOfWord = mapOf3GramWord.getOrPut(mapKey) { arrayListOf() }
             val wordIndex = arrayOfWord.binarySearch { glossaryWord ->
                 glossaryWord.value.compareTo(word)
             }
             if (wordIndex < 0 || arrayOfWord[wordIndex].value != word) {
-                val newWord = GlossaryWordDistance(word)
-                newWord.processNewFile(fileName, listPosition)
+                val newWord = GlossaryWord(word)
+                newWord.processNewFile(fileName, wordRepeat)
                 arrayOfWord.add(newWord)
             } else
-                arrayOfWord[wordIndex].processNewFile(fileName, listPosition)
+                arrayOfWord[wordIndex].processNewFile(fileName, wordRepeat)
+            arrayOfWord.sortBy { glossaryWord -> glossaryWord.value }
         }
     }
 
-    private fun search2Gram(searchWord: String): GlossaryWordDistance? {
-        mapOf2GramWord.get(searchWord.substring(2))?.let { arrayList ->
+    private fun search3Gram(searchWord: String): GlossaryWord? {
+        mapOf3GramWord.get(searchWord.substring(3))?.let { arrayList ->
             val wordIndex = arrayList.binarySearch { glossaryWord ->
                 glossaryWord.value.compareTo(searchWord)
             }
@@ -138,7 +151,7 @@ class Glossary(
         if (res.isEmpty())
             return res
 
-        for((wordIndex, distance) in (0 until listOfGlossaryWord.size - 1).zip(1..splitList.size step 2)) {
+        for ((wordIndex, distance) in (0 until listOfGlossaryWord.size - 1).zip(1..splitList.size step 2)) {
             res = findIntersectionWithWordDistance(res, listOfGlossaryWord[wordIndex], listOfGlossaryWord[wordIndex + 1], splitList[distance].replace("/", "").toInt())
         }
         return res
@@ -179,24 +192,24 @@ class Glossary(
         return resList
     }
 
-    public fun saveGlossaryWithDistance(fileDirectory: String = "src/main/resources/GlossaryFolder"){
+    public fun saveGlossaryWithDistance(fileDirectory: String = "src/main/resources/GlossaryFolder") {
         val file = File(fileDirectory + "GlossaryDis.txt")
         file.createNewFile()
         val stringBuilder = StringBuilder()
         val list = rootGlossaryNodeDistance.getAll()
-        list.forEach{ glossaryWordDistance ->
+        list.forEach { glossaryWordDistance ->
             stringBuilder.append(glossaryWordDistance.toSaveFormat()).append("\n")
         }
         stringBuilder.deleteCharAt(stringBuilder.length - 1)
         file.writeText(stringBuilder.toString(), charset)
     }
 
-    public fun saveGlossaryPhrase(fileDirectory: String = "src/main/resources/GlossaryFolder"){
+    public fun saveGlossaryPhrase(fileDirectory: String = "src/main/resources/GlossaryFolder") {
         val file = File(fileDirectory + "GlossaryPhrase.txt")
         file.createNewFile()
         val stringBuilder = StringBuilder()
         val list = rootGlossaryNodePhrase.getAll()
-        list.forEach{ glossaryWordDistance ->
+        list.forEach { glossaryWordDistance ->
             stringBuilder.append(glossaryWordDistance.toSaveFormat()).append("\n")
         }
         stringBuilder.deleteCharAt(stringBuilder.length - 1)
