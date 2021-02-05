@@ -7,5 +7,5 @@
 *.ipr
 *.iws
 local.properties
-src/main/resources/Glossary.txt
+src/main/resources/GlossaryFolder
 src/test/resources/

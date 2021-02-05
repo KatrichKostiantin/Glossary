@@ -32,7 +32,7 @@ class GlossaryWord(
         mapFileCount.forEach { entry: Map.Entry<String, Int> ->
             stringBuilder.append(entry.key).append("-").append(entry.value).append(",")
         }
-        stringBuilder.deleteCharAt(stringBuilder.length - 1)
+        stringBuilder.deleteCharAt(stringBuilder.length-1)
         return stringBuilder.toString()
     }
 }

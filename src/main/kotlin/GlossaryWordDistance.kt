@@ -29,4 +29,16 @@ class GlossaryWordDistance(
     override fun toString(): String {
         return "GlossaryWord(value='$value', mapFileCount=$mapFileCount)"
     }
+
+    fun toSaveFormat(): String {
+        val str = StringBuilder()
+        str.append(value).append(": ")
+
+        mapFileCount.keys.forEach { key ->
+            str.append("[").append(key).append(": ")
+            mapFileCount[key]?.forEach { str.append(it).append(", ") }
+            str.delete(str.length - 3, str.length - 1).append("]")
+        }
+        return str.toString()
+    }
 }

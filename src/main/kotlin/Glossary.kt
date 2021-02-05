@@ -99,13 +99,13 @@ class Glossary(
         return null
     }
 
-    fun searchPhrase(phrase: String): MutableSet<String>? {
+    fun searchPhrase(phrase: String): List<String> {
         return searchPhrase(phrase.split(" "))
     }
 
-    fun searchPhrase(wordList: List<String>): MutableSet<String>? {
+    fun searchPhrase(wordList: List<String>): List<String> {
         if (wordList.size == 2)
-            return rootGlossaryNodePhrase.get("${wordList[0]} ${wordList[1]}")?.mapFileCount?.keys
+            return rootGlossaryNodePhrase.get("${wordList[0]} ${wordList[1]}")?.mapFileCount?.keys?.let { it.toList() } ?: emptyList()
 
         val listOfFiles = LinkedList<List<String>>()
         for (i in 0 until wordList.size - 1) {
@@ -119,7 +119,7 @@ class Glossary(
         listOfFiles.forEach { list ->
             res = findIntersection(res, list)
         }
-        return res.toMutableSet()
+        return res
     }
 
     fun searchPhraseWithDistance(phrase: String): List<String> {
@@ -138,7 +138,7 @@ class Glossary(
         if (res.isEmpty())
             return res
 
-        for((wordIndex, distance) in (0 until listOfGlossaryWord.size - 1).zip(0..splitList.size step 2)) {
+        for((wordIndex, distance) in (0 until listOfGlossaryWord.size - 1).zip(1..splitList.size step 2)) {
             res = findIntersectionWithWordDistance(res, listOfGlossaryWord[wordIndex], listOfGlossaryWord[wordIndex + 1], splitList[distance].replace("/", "").toInt())
         }
         return res
@@ -177,5 +177,29 @@ class Glossary(
         }
 
         return resList
+    }
+
+    public fun saveGlossaryWithDistance(fileDirectory: String = "src/main/resources/GlossaryFolder"){
+        val file = File(fileDirectory + "GlossaryDis.txt")
+        file.createNewFile()
+        val stringBuilder = StringBuilder()
+        val list = rootGlossaryNodeDistance.getAll()
+        list.forEach{ glossaryWordDistance ->
+            stringBuilder.append(glossaryWordDistance.toSaveFormat()).append("\n")
+        }
+        stringBuilder.deleteCharAt(stringBuilder.length - 1)
+        file.writeText(stringBuilder.toString(), charset)
+    }
+
+    public fun saveGlossaryPhrase(fileDirectory: String = "src/main/resources/GlossaryFolder"){
+        val file = File(fileDirectory + "GlossaryPhrase.txt")
+        file.createNewFile()
+        val stringBuilder = StringBuilder()
+        val list = rootGlossaryNodePhrase.getAll()
+        list.forEach{ glossaryWordDistance ->
+            stringBuilder.append(glossaryWordDistance.toSaveFormat()).append("\n")
+        }
+        stringBuilder.deleteCharAt(stringBuilder.length - 1)
+        file.writeText(stringBuilder.toString(), charset)
     }
 }

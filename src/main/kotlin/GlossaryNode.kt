@@ -1,4 +1,5 @@
 import java.util.*
+import kotlin.collections.ArrayList
 import kotlin.collections.HashMap
 
 class GlossaryNodePhrase(
@@ -27,6 +28,12 @@ class GlossaryNodePhrase(
             return null
         return childrenNode[enterWord[index]]?.get(enterWord, index + 1)
     }
+
+    public fun getAll(list: ArrayList<GlossaryWord>): ArrayList<GlossaryWord> {
+        word?.let { list.add(it) }
+        childrenNode.values.forEach { it.getAll(list) }
+        return list
+    }
 }
 
 class GlossaryNodePhraseRoot {
@@ -43,6 +50,13 @@ class GlossaryNodePhraseRoot {
         if (childrenNode[enterWord[index]] == null)
             return null
         return childrenNode[enterWord[index]]?.get(enterWord, index + 1)
+    }
+
+    public fun getAll(): ArrayList<GlossaryWord> {
+        val list = ArrayList<GlossaryWord>()
+        childrenNode.values.forEach { it.getAll(list) }
+        list.sortBy { it.value }
+        return list
     }
 }
 
@@ -72,6 +86,12 @@ class GlossaryNodeDistance(
             return null
         return childrenNode[enterWord[index]]?.get(enterWord, index + 1)
     }
+
+    public fun getAll(list: ArrayList<GlossaryWordDistance>): ArrayList<GlossaryWordDistance> {
+        word?.let { list.add(it) }
+        childrenNode.values.forEach { it.getAll(list) }
+        return list
+    }
 }
 
 class GlossaryNodeDistanceRoot {
@@ -88,5 +108,12 @@ class GlossaryNodeDistanceRoot {
         if (childrenNode[enterWord[index]] == null)
             return null
         return childrenNode[enterWord[index]]?.get(enterWord, index + 1)
+    }
+
+    public fun getAll(): ArrayList<GlossaryWordDistance> {
+        val list = ArrayList<GlossaryWordDistance>()
+        childrenNode.values.forEach { it.getAll(list) }
+        list.sortBy { it.value }
+        return list
     }
 }

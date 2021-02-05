@@ -2,7 +2,8 @@ fun main() {
     val glossary = Glossary()
     glossary.readAllFiles()
 
-    println(glossary.searchPhrase(listOf("drawing", "room", "was", "gradually")))
+    println(glossary.searchPhrase(listOf("drawing", "room")))
 
-    println(glossary.searchPhraseWithDistance("gradually /3 drawing"))
+    println(glossary.searchPhraseWithDistance("drawing /1 room /3 drawing"))
+    glossary.saveGlossaryPhrase()
 }
