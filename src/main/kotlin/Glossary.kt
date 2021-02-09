@@ -18,6 +18,7 @@ class Glossary(
 
 
     private val mapOf3GramWord = HashMap<String, ArrayList<GlossaryWord>>()
+    private val mapOf2GramWord = HashMap<String, ArrayList<GlossaryWord>>()
     private val rootGlossaryNodePhrase = GlossaryNodePhraseRoot()
     private val rootGlossaryNodeSwap = GlossaryNodeKeyRoot()
     private val rootGlossaryNodeDistance = GlossaryNodeDistanceRoot()
@@ -41,6 +42,8 @@ class Glossary(
                 when (fileExtension) {
                     FileExtension.txt -> {
                         readAllWordFromTxtFile(file)
+                        readAllWordWithGramFromTxtFile(file, 3, mapOf3GramWord)
+                        readAllWordWithGramFromTxtFile(file, 2, mapOf2GramWord)
                     }
                     //FileExtension.fb2 -> readAllWordsFromFB2File(file)
                     else -> logger?.warn("File with extension $this not supported")
@@ -126,20 +129,20 @@ class Glossary(
 
     //region Word with 3 gram
 
-    private fun readAllWord3GramFromTxtFile(file: File) {
+    private fun readAllWordWithGramFromTxtFile(file: File, gram: Int = 3, map: HashMap<String, ArrayList<GlossaryWord>>) {
         val newWords = fileReader.readTxtFileWord(file)
         logger?.info("File (${file.name}) contains ${newWords.size} unique words.")
 
         newWords.keys.forEach { word ->
-            newWords[word]?.let { insert3GramWord(word, it, file.name.substringAfterLast("/")) }
+            newWords[word]?.let { insertWithGramWord(word, it, file.name.substringAfterLast("/"), gram, map) }
         }
     }
 
-    private fun insert3GramWord(word: String, wordRepeat: Int, fileName: String) {
+    private fun insertWithGramWord(word: String, wordRepeat: Int, fileName: String, gram: Int, map: HashMap<String, ArrayList<GlossaryWord>>) {
         val wordKey = "$$word$"
-        for (i in 0..wordKey.length - 3) {
-            val mapKey = wordKey.substring(i, i + 3)
-            val arrayOfWord = mapOf3GramWord.getOrPut(mapKey) { arrayListOf() }
+        for (i in 0..wordKey.length - gram) {
+            val mapKey = wordKey.substring(i, i + gram)
+            val arrayOfWord = map.getOrPut(mapKey) { arrayListOf() }
             val wordIndex = arrayOfWord.binarySearch { glossaryWord ->
                 glossaryWord.value.compareTo(word)
             }
@@ -244,6 +247,39 @@ class Glossary(
 
     //region search with Joker
 
+    //region two Joker
+    public fun findWordWithJokers(wordWithJoker: String): ArrayList<GlossaryWord> {
+        val listOfLists = ArrayList<ArrayList<GlossaryWord>>()
+        var tempWord = wordWithJoker
+        if (!wordWithJoker.startsWith("*")) tempWord = "$$tempWord"
+        if (!wordWithJoker.endsWith("*")) tempWord = "$tempWord$"
+        val partsOfWord = tempWord.split("*")
+
+        partsOfWord.forEach { partOfWord ->
+            when (partOfWord.length) {
+                1 -> return ArrayList<GlossaryWord>()
+                2 -> mapOf2GramWord[partOfWord]?.let { listOfLists.add(it) }
+                else -> {
+                    for (j in 0..partOfWord.length - 3) {
+                        val mapKey = partOfWord.substring(j, j + 3)
+                        mapOf3GramWord[mapKey]?.let { listOfLists.add(it) }
+                    }
+                }
+            }
+        }
+
+        var res = listOfLists[0]
+
+        for (i in 1 until listOfLists.size) {
+            res = findIntersectionGlossary(res, listOfLists[i])
+        }
+
+        return res
+    }
+    //endregion
+
+    //region one Joker
+
     public fun findWordWithJoker(wordWithJoker: String): ArrayList<GlossaryWord> {
         if (!wordWithJoker.contains("*")) return ArrayList()
 
@@ -269,6 +305,8 @@ class Glossary(
         val endPhrase = wordWithJoker.split("*")[1]
         return rootGlossaryNodeSwap.getAllAfter("$endPhrase$$startPhrase")
     }
+
+    //endregion
 
     //endregion
 
