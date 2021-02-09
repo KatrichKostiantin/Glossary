@@ -1,9 +1,8 @@
 fun main() {
     val glossary = Glossary()
     glossary.readAllFiles()
+    glossary.findWordWithJoker("s*s").forEach {
+        println(it.value)
+    }
 
-    println(glossary.searchPhrase(listOf("drawing", "room")))
-
-    println(glossary.searchPhraseWithDistance("drawing /1 room /3 drawing"))
-    glossary.saveGlossaryPhrase()
 }

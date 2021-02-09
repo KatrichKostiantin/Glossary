@@ -1,9 +1,11 @@
 import BTreeNodes.GlossaryNodeDistanceRoot
+import BTreeNodes.GlossaryNodeKeyRoot
 import BTreeNodes.GlossaryNodePhraseRoot
 import org.slf4j.Logger
 import java.io.File
 import java.nio.charset.Charset
 import java.util.*
+import kotlin.collections.ArrayList
 import kotlin.collections.HashMap
 import kotlin.math.abs
 
@@ -17,6 +19,7 @@ class Glossary(
 
     private val mapOf3GramWord = HashMap<String, ArrayList<GlossaryWord>>()
     private val rootGlossaryNodePhrase = GlossaryNodePhraseRoot()
+    private val rootGlossaryNodeSwap = GlossaryNodeKeyRoot()
     private val rootGlossaryNodeDistance = GlossaryNodeDistanceRoot()
 
     private val mapFileIndex = HashMap<Int, String>()
@@ -37,9 +40,7 @@ class Glossary(
                 val fileExtension = FileExtension.valueOf(file.name.substringAfterLast("."))
                 when (fileExtension) {
                     FileExtension.txt -> {
-                        readAllWordsWithDistanceFromTxtFile(file)
-                        readAllPhraseFromTxtFile(file)
-                        readAllWord3GramFromTxtFile(file)
+                        readAllWordFromTxtFile(file)
                     }
                     //FileExtension.fb2 -> readAllWordsFromFB2File(file)
                     else -> logger?.warn("File with extension $this not supported")
@@ -48,27 +49,7 @@ class Glossary(
         }
     }
 
-    private fun readAllPhraseFromTxtFile(file: File) {
-        val newWords = fileReader.readTxtFilePhrase(file)
-        logger?.info("File (${file.name}) contains ${newWords.size} unique words.")
-
-        newWords.keys.forEach { word ->
-            newWords[word]?.let { insertPhrase(word, it, file.name.substringAfterLast("/")) }
-        }
-    }
-
-    private fun readAllWord3GramFromTxtFile(file: File) {
-        val newWords = fileReader.readTxtFileWord(file)
-        logger?.info("File (${file.name}) contains ${newWords.size} unique words.")
-
-        newWords.keys.forEach { word ->
-            newWords[word]?.let { insert3GramWord(word, it, file.name.substringAfterLast("/")) }
-        }
-    }
-
-    private fun insertPhrase(word: String, fileRepeat: Int, fileName: String) {
-        rootGlossaryNodePhrase.insert(word, fileName = fileName, fileRepeat = fileRepeat)
-    }
+    //region Word with distance
 
     fun readAllWordsWithDistanceFromTxtFile(file: File) {
         val newWords = fileReader.readTxtFileWithDistance(file)
@@ -81,58 +62,6 @@ class Glossary(
 
     private fun insertWordWithDistance(word: String, distanceList: LinkedList<Int>, fileName: String) {
         rootGlossaryNodeDistance.insert(word, fileName = fileName, fileListDistance = distanceList)
-    }
-
-    private fun insert3GramWord(word: String, wordRepeat: Int, fileName: String) {
-        val wordKey = "$$word$"
-        for (i in 0..wordKey.length - 3) {
-            val mapKey = wordKey.substring(i, i + 3)
-            val arrayOfWord = mapOf3GramWord.getOrPut(mapKey) { arrayListOf() }
-            val wordIndex = arrayOfWord.binarySearch { glossaryWord ->
-                glossaryWord.value.compareTo(word)
-            }
-            if (wordIndex < 0 || arrayOfWord[wordIndex].value != word) {
-                val newWord = GlossaryWord(word)
-                newWord.processNewFile(fileName, wordRepeat)
-                arrayOfWord.add(newWord)
-            } else
-                arrayOfWord[wordIndex].processNewFile(fileName, wordRepeat)
-            arrayOfWord.sortBy { glossaryWord -> glossaryWord.value }
-        }
-    }
-
-    private fun search3Gram(searchWord: String): GlossaryWord? {
-        mapOf3GramWord.get(searchWord.substring(3))?.let { arrayList ->
-            val wordIndex = arrayList.binarySearch { glossaryWord ->
-                glossaryWord.value.compareTo(searchWord)
-            }
-            if (arrayList[wordIndex].value == searchWord)
-                return arrayList[wordIndex]
-        }
-        return null
-    }
-
-    fun searchPhrase(phrase: String): List<String> {
-        return searchPhrase(phrase.split(" "))
-    }
-
-    fun searchPhrase(wordList: List<String>): List<String> {
-        if (wordList.size == 2)
-            return rootGlossaryNodePhrase.get("${wordList[0]} ${wordList[1]}")?.mapFileCount?.keys?.let { it.toList() } ?: emptyList()
-
-        val listOfFiles = LinkedList<List<String>>()
-        for (i in 0 until wordList.size - 1) {
-            rootGlossaryNodePhrase.get("${wordList[i]} ${wordList[i + 1]}")?.let {
-                listOfFiles.add(it.mapFileCount.keys.toList())
-            } ?: listOfFiles.add(emptyList())
-        }
-
-        var res = mapFileIndex.values.toList()
-
-        listOfFiles.forEach { list ->
-            res = findIntersection(res, list)
-        }
-        return res
     }
 
     fun searchPhraseWithDistance(phrase: String): List<String> {
@@ -181,18 +110,7 @@ class Glossary(
         return res
     }
 
-    private fun findIntersection(mainList: List<String>, additionList: List<String>): List<String> {
-        val resList = LinkedList<String>()
-
-        mainList.forEach {
-            if (additionList.contains(it))
-                resList.add(it)
-        }
-
-        return resList
-    }
-
-    public fun saveGlossaryWithDistance(fileDirectory: String = "src/main/resources/GlossaryFolder") {
+    public fun saveGlossaryWithDistance(fileDirectory: String = "src/main/resources/GlossaryFolder/") {
         val file = File(fileDirectory + "GlossaryDis.txt")
         file.createNewFile()
         val stringBuilder = StringBuilder()
@@ -204,7 +122,113 @@ class Glossary(
         file.writeText(stringBuilder.toString(), charset)
     }
 
-    public fun saveGlossaryPhrase(fileDirectory: String = "src/main/resources/GlossaryFolder") {
+    //endregion
+
+    //region Word with 3 gram
+
+    private fun readAllWord3GramFromTxtFile(file: File) {
+        val newWords = fileReader.readTxtFileWord(file)
+        logger?.info("File (${file.name}) contains ${newWords.size} unique words.")
+
+        newWords.keys.forEach { word ->
+            newWords[word]?.let { insert3GramWord(word, it, file.name.substringAfterLast("/")) }
+        }
+    }
+
+    private fun insert3GramWord(word: String, wordRepeat: Int, fileName: String) {
+        val wordKey = "$$word$"
+        for (i in 0..wordKey.length - 3) {
+            val mapKey = wordKey.substring(i, i + 3)
+            val arrayOfWord = mapOf3GramWord.getOrPut(mapKey) { arrayListOf() }
+            val wordIndex = arrayOfWord.binarySearch { glossaryWord ->
+                glossaryWord.value.compareTo(word)
+            }
+            if (wordIndex < 0 || arrayOfWord[wordIndex].value != word) {
+                val newWord = GlossaryWord(word)
+                newWord.processNewFile(fileName, wordRepeat)
+                arrayOfWord.add(newWord)
+            } else
+                arrayOfWord[wordIndex].processNewFile(fileName, wordRepeat)
+            arrayOfWord.sortBy { glossaryWord -> glossaryWord.value }
+        }
+    }
+
+    private fun search3Gram(searchWord: String): GlossaryWord? {
+        mapOf3GramWord.get(searchWord.substring(3))?.let { arrayList ->
+            val wordIndex = arrayList.binarySearch { glossaryWord ->
+                glossaryWord.value.compareTo(searchWord)
+            }
+            if (arrayList[wordIndex].value == searchWord)
+                return arrayList[wordIndex]
+        }
+        return null
+    }
+
+    //endregion
+
+    //region Word with swapping
+
+    private fun readAllWordFromTxtFile(file: File) {
+        val newWords = fileReader.readTxtFileWord(file)
+
+        newWords.keys.forEach { word ->
+            newWords[word]?.let { insertWordSwap(word, it, file.name.substringAfterLast("/")) }
+        }
+    }
+
+    private fun insertWordSwap(word: String, fileRepeat: Int, fileName: String) {
+        var tempWord = "$word$"
+        repeat(tempWord.length) {
+            rootGlossaryNodeSwap.insert(tempWord, word, fileName = fileName, fileRepeat = fileRepeat)
+            tempWord = tempWord.substring(1) + tempWord[0]
+        }
+    }
+
+    public fun searchWordSwap(word: String): GlossaryWord? {
+        return rootGlossaryNodeSwap.get("$word$")
+    }
+
+    //endregion
+
+    //region Word in phrase
+
+    private fun readAllPhraseFromTxtFile(file: File) {
+        val newWords = fileReader.readTxtFilePhrase(file)
+        logger?.info("File (${file.name}) contains ${newWords.size} unique words.")
+
+        newWords.keys.forEach { word ->
+            newWords[word]?.let { insertPhrase(word, it, file.name.substringAfterLast("/")) }
+        }
+    }
+
+    private fun insertPhrase(word: String, fileRepeat: Int, fileName: String) {
+        rootGlossaryNodePhrase.insert(word, fileName = fileName, fileRepeat = fileRepeat)
+    }
+
+    fun searchPhrase(phrase: String): List<String> {
+        return searchPhrase(phrase.split(" "))
+    }
+
+    fun searchPhrase(wordList: List<String>): List<String> {
+        if (wordList.size == 2)
+            return rootGlossaryNodePhrase.get("${wordList[0]} ${wordList[1]}")?.mapFileCount?.keys?.let { it.toList() } ?: emptyList()
+
+        val listOfFiles = LinkedList<List<String>>()
+        for (i in 0 until wordList.size - 1) {
+            rootGlossaryNodePhrase.get("${wordList[i]} ${wordList[i + 1]}")?.let {
+                listOfFiles.add(it.mapFileCount.keys.toList())
+            } ?: listOfFiles.add(emptyList())
+        }
+
+        var res = mapFileIndex.values.toList()
+
+        listOfFiles.forEach { list ->
+            res = findIntersection(res, list)
+        }
+        return res
+    }
+
+    public fun saveGlossaryPhrase(fileDirectory: String = "src/main/resources/GlossaryFolder/") {
         val file = File(fileDirectory + "GlossaryPhrase.txt")
         file.createNewFile()
         val stringBuilder = StringBuilder()
@@ -215,4 +239,59 @@ class Glossary(
         stringBuilder.deleteCharAt(stringBuilder.length - 1)
         file.writeText(stringBuilder.toString(), charset)
     }
+
+    //endregion
+
+    //region search with Joker
+
+    public fun findWordWithJoker(wordWithJoker: String): ArrayList<GlossaryWord> {
+        if (!wordWithJoker.contains("*")) return ArrayList()
+
+        return when (true) {
+            wordWithJoker.startsWith("*") -> findWordWithStartJoker(wordWithJoker)
+            wordWithJoker.endsWith("*") -> findWordWithEndJoker(wordWithJoker)
+            else -> findWordWithMidJoker(wordWithJoker)
+        }
+    }
+
+    private fun findWordWithStartJoker(wordWithJoker: String): ArrayList<GlossaryWord> {
+        val wordWithoutWord = wordWithJoker.replace("*", "")
+        return rootGlossaryNodeSwap.getAllAfter("$wordWithoutWord$")
+    }
+
+    private fun findWordWithEndJoker(wordWithJoker: String): ArrayList<GlossaryWord> {
+        val wordWithoutWord = wordWithJoker.replace("*", "")
+        return rootGlossaryNodeSwap.getAllAfter("$$wordWithoutWord")
+    }
+
+    private fun findWordWithMidJoker(wordWithJoker: String): ArrayList<GlossaryWord> {
+        val startPhrase = wordWithJoker.split("*")[0]
+        val endPhrase = wordWithJoker.split("*")[1]
+        return rootGlossaryNodeSwap.getAllAfter("$endPhrase$$startPhrase")
+    }
+
+    //endregion
+
+    private fun findIntersection(mainList: List<String>, additionList: List<String>): List<String> {
+        val resList = LinkedList<String>()
+
+        mainList.forEach {
+            if (additionList.contains(it))
+                resList.add(it)
+        }
+
+        return resList
+    }
+
+    private fun findIntersectionGlossary(mainList: List<GlossaryWord>, additionList: List<GlossaryWord>): ArrayList<GlossaryWord> {
+        val resList = ArrayList<GlossaryWord>()
+
+        mainList.forEach {
+            if (additionList.contains(it))
+                resList.add(it)
+        }
+
+        return resList
+    }
+
 }
