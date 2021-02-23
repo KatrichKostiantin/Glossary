@@ -3,7 +3,7 @@ import java.nio.charset.Charset
 import java.util.*
 import kotlin.collections.ArrayList
 
-class FileReader(
+class FileReaderCustom(
     private val charset: Charset = Charset.defaultCharset()
 ) {
     public fun readTxtFileWithDistance(file: File): Map<String, LinkedList<Int>> {
@@ -79,6 +79,7 @@ class FileReader(
         res = Regex("^[-`]+").replace(res, "")
         if (res.toIntOrNull() == null)
             res = Regex("[^a-z-`]").replace(res, "")
+        if(res.length >= 40) return ""
         return res
     }
 }

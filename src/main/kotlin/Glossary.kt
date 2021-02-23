@@ -1,6 +1,6 @@
 import BTreeNodes.GlossaryNodeDistanceRoot
 import BTreeNodes.GlossaryNodeKeyRoot
-import BTreeNodes.GlossaryNodePhraseRoot
+import BTreeNodes.GlossaryNodeRoot
 import org.slf4j.Logger
 import java.io.File
 import java.nio.charset.Charset
@@ -14,22 +14,19 @@ class Glossary(
     private val logger: Logger? = null
 ) {
     val fileNameGlossary: String = "Glossary.txt"
-    val fileReader = FileReader(charset)
+    val fileReader = FileReaderCustom(charset)
 
 
     private val mapOf3GramWord = HashMap<String, ArrayList<GlossaryWord>>()
     private val mapOf2GramWord = HashMap<String, ArrayList<GlossaryWord>>()
-    private val rootGlossaryNodePhrase = GlossaryNodePhraseRoot()
+    private val rootGlossaryNodePhrase = GlossaryNodeRoot()
     private val rootGlossaryNodeSwap = GlossaryNodeKeyRoot()
     private val rootGlossaryNodeDistance = GlossaryNodeDistanceRoot()
 
     private val mapFileIndex = HashMap<Int, String>()
     private var countOfFiles = 0
 
-    private enum class FileExtension {
-        txt,
-        fb2,
-    }
+
 
     fun readAllFiles(folderPath: String = "src/main/resources/texts/") {
         logger?.info("Start reading from directory (path: $folderPath)")
@@ -205,30 +202,30 @@ class Glossary(
     }
 
     private fun insertPhrase(word: String, fileRepeat: Int, fileName: String) {
-        rootGlossaryNodePhrase.insert(word, fileName = fileName, fileRepeat = fileRepeat)
+        rootGlossaryNodePhrase.insert(word, fileIndex = fileName.toLong(), fileRepeat = fileRepeat)
     }
 
-    fun searchPhrase(phrase: String): List<String> {
+    fun searchPhrase(phrase: String): List<Long> {
         return searchPhrase(phrase.split(" "))
     }
 
-    fun searchPhrase(wordList: List<String>): List<String> {
+    fun searchPhrase(wordList: List<String>): List<Long> {
         if (wordList.size == 2)
             return rootGlossaryNodePhrase.get("${wordList[0]} ${wordList[1]}")?.mapFileCount?.keys?.let { it.toList() } ?: emptyList()
 
-        val listOfFiles = LinkedList<List<String>>()
+        val listOfFiles = LinkedList<List<Long>>()
         for (i in 0 until wordList.size - 1) {
             rootGlossaryNodePhrase.get("${wordList[i]} ${wordList[i + 1]}")?.let {
                 listOfFiles.add(it.mapFileCount.keys.toList())
             } ?: listOfFiles.add(emptyList())
         }
 
-        var res = mapFileIndex.values.toList()
+        /*return mapFileIndex.values.toList()
 
         listOfFiles.forEach { list ->
             res = findIntersection(res, list)
-        }
-        return res
+        }*/
+        return emptyList()
     }
 
     public fun saveGlossaryPhrase(fileDirectory: String = "src/main/resources/GlossaryFolder/") {

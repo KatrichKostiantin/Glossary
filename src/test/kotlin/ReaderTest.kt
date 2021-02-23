@@ -2,7 +2,7 @@ import org.junit.Test
 import kotlin.test.assertEquals
 
 internal class ReaderTest {
-    var fileReader = FileReader()
+    var fileReader = FileReaderCustom()
 
     @Test
     fun fileReaderCleanSimpleWordCorrectly() {
