@@ -1,6 +1,6 @@
-package BTreeNodes
+package bTreeNodes
 
-import GlossaryWordDistance
+import Words.GlossaryWordDistance
 import java.util.*
 import kotlin.collections.ArrayList
 import kotlin.collections.HashMap

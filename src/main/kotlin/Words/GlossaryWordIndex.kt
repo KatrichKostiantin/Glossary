@@ -1,3 +1,5 @@
+package Words
+
 class GlossaryWordIndex(
     val value: String
 ) {

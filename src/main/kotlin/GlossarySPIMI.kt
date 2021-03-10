@@ -1,4 +1,5 @@
-import BTreeNodes.GlossaryNodeRoot
+import bTreeNodes.GlossaryNodeRoot
+import Words.GlossaryWordIndex
 import java.io.BufferedReader
 import java.io.File
 import java.io.IOException

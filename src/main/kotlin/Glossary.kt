@@ -1,6 +1,9 @@
-import BTreeNodes.GlossaryNodeDistanceRoot
-import BTreeNodes.GlossaryNodeKeyRoot
-import BTreeNodes.GlossaryNodeRoot
+import Words.GlossaryWord
+import Words.GlossaryWordDistance
+import bTreeNodes.GlossaryNodeDistanceRoot
+import bTreeNodes.GlossaryNodeKeyRoot
+import bTreeNodes.GlossaryNodeRoot
+import bTreeNodes.GlossaryNodeZoneDistanceRoot
 import org.slf4j.Logger
 import java.io.File
 import java.nio.charset.Charset
@@ -22,13 +25,14 @@ class Glossary(
     private val rootGlossaryNodePhrase = GlossaryNodeRoot()
     private val rootGlossaryNodeSwap = GlossaryNodeKeyRoot()
     private val rootGlossaryNodeDistance = GlossaryNodeDistanceRoot()
+    private val rootGlossaryNodeZoneDistance = GlossaryNodeZoneDistanceRoot()
+
 
     private val mapFileIndex = HashMap<Int, String>()
     private var countOfFiles = 0
 
 
-
-    fun readAllFiles(folderPath: String = "src/main/resources/texts/") {
+    fun readAllFiles(folderPath: String = "src/main/resources/texts/books/") {
         logger?.info("Start reading from directory (path: $folderPath)")
         File(folderPath).walk().forEach { file ->
             if (file.isDirectory) {
@@ -38,10 +42,8 @@ class Glossary(
                 val fileExtension = FileExtension.valueOf(file.name.substringAfterLast("."))
                 when (fileExtension) {
                     FileExtension.txt -> {
-                        readAllWordFromTxtFile(file)
-                        readAllWordWithGramFromTxtFile(file, 3, mapOf3GramWord)
-                        readAllWordWithGramFromTxtFile(file, 2, mapOf2GramWord)
                     }
+                    FileExtension.fb2 -> readAllZoneDistWordFB2(file)
                     //FileExtension.fb2 -> readAllWordsFromFB2File(file)
                     else -> logger?.warn("File with extension $this not supported")
                 }
@@ -81,12 +83,22 @@ class Glossary(
             return res
 
         for ((wordIndex, distance) in (0 until listOfGlossaryWord.size - 1).zip(1..splitList.size step 2)) {
-            res = findIntersectionWithWordDistance(res, listOfGlossaryWord[wordIndex], listOfGlossaryWord[wordIndex + 1], splitList[distance].replace("/", "").toInt())
+            res = findIntersectionWithWordDistance(
+                res,
+                listOfGlossaryWord[wordIndex],
+                listOfGlossaryWord[wordIndex + 1],
+                splitList[distance].replace("/", "").toInt()
+            )
         }
         return res
     }
 
-    private fun findIntersectionWithWordDistance(enterList: List<String>, word1: GlossaryWordDistance, word2: GlossaryWordDistance, dis: Int): List<String> {
+    private fun findIntersectionWithWordDistance(
+        enterList: List<String>,
+        word1: GlossaryWordDistance,
+        word2: GlossaryWordDistance,
+        dis: Int
+    ): List<String> {
         val res = LinkedList<String>()
         enterList.forEach { fileName ->
             val iteratorList1 = word1.mapFileCount[fileName]!!.iterator()
@@ -126,7 +138,11 @@ class Glossary(
 
     //region Word with 3 gram
 
-    private fun readAllWordWithGramFromTxtFile(file: File, gram: Int = 3, map: HashMap<String, ArrayList<GlossaryWord>>) {
+    private fun readAllWordWithGramFromTxtFile(
+        file: File,
+        gram: Int = 3,
+        map: HashMap<String, ArrayList<GlossaryWord>>
+    ) {
         val newWords = fileReader.readTxtFileWord(file)
         logger?.info("File (${file.name}) contains ${newWords.size} unique words.")
 
@@ -135,7 +151,13 @@ class Glossary(
         }
     }
 
-    private fun insertWithGramWord(word: String, wordRepeat: Int, fileName: String, gram: Int, map: HashMap<String, ArrayList<GlossaryWord>>) {
+    private fun insertWithGramWord(
+        word: String,
+        wordRepeat: Int,
+        fileName: String,
+        gram: Int,
+        map: HashMap<String, ArrayList<GlossaryWord>>
+    ) {
         val wordKey = "$$word$"
         for (i in 0..wordKey.length - gram) {
             val mapKey = wordKey.substring(i, i + gram)
@@ -211,7 +233,8 @@ class Glossary(
 
     fun searchPhrase(wordList: List<String>): List<Long> {
         if (wordList.size == 2)
-            return rootGlossaryNodePhrase.get("${wordList[0]} ${wordList[1]}")?.mapFileCount?.keys?.let { it.toList() } ?: emptyList()
+            return rootGlossaryNodePhrase.get("${wordList[0]} ${wordList[1]}")?.mapFileCount?.keys?.let { it.toList() }
+                ?: emptyList()
 
         val listOfFiles = LinkedList<List<Long>>()
         for (i in 0 until wordList.size - 1) {
@@ -307,6 +330,22 @@ class Glossary(
 
     //endregion
 
+    fun readAllZoneDistWordFB2(file: File) {
+        val newWords = fileReader.readFB2File(file)
+        logger?.info("File (${file.name}) contains ${newWords.size} unique words.")
+        newWords.keys.forEach { word ->
+            newWords[word]?.let { insertWordWithZoneDistance(word, it, file.name.substringAfterLast("/")) }
+        }
+    }
+
+    private fun insertWordWithZoneDistance(
+        word: String,
+        distanceList: LinkedList<Pair<Int, ArrayList<Int>>>,
+        fileName: String
+    ) {
+        rootGlossaryNodeZoneDistance.insert(word, fileName = fileName, fileListDistance = distanceList)
+    }
+
     private fun findIntersection(mainList: List<String>, additionList: List<String>): List<String> {
         val resList = LinkedList<String>()
 
@@ -318,7 +357,10 @@ class Glossary(
         return resList
     }
 
-    private fun findIntersectionGlossary(mainList: List<GlossaryWord>, additionList: List<GlossaryWord>): ArrayList<GlossaryWord> {
+    private fun findIntersectionGlossary(
+        mainList: List<GlossaryWord>,
+        additionList: List<GlossaryWord>
+    ): ArrayList<GlossaryWord> {
         val resList = ArrayList<GlossaryWord>()
 
         mainList.forEach {
@@ -329,4 +371,96 @@ class Glossary(
         return resList
     }
 
+    fun searchFilesZones(author: Array<String>, titles: Array<String>, body: Array<String>): List<Pair<String, Double>> {
+        val authorWordList = HashMap<String, ArrayList<String>>()
+        author.forEach { s ->
+            rootGlossaryNodeZoneDistance.get(s)?.let {
+                it.mapFileCount.forEach lit@{ entry ->
+                    entry.value.forEach { pair ->
+                        if (pair.second.contains(0)) {
+                            authorWordList.getOrPut(s) { ArrayList() }.add(entry.key)
+                            return@lit
+                        }
+                    }
+                }
+            }
+        }
+        val titlesWordList = HashMap<String, ArrayList<String>>()
+        titles.forEach { s ->
+            rootGlossaryNodeZoneDistance.get(s)?.let {
+                it.mapFileCount.forEach lit@{ entry ->
+                    entry.value.forEach { pair ->
+                        if (pair.second.contains(1)) {
+                            titlesWordList.getOrPut(s) { ArrayList() }.add(entry.key)
+                            return@lit
+                        }
+                    }
+                }
+            }
+        }
+        val bodyWordList = HashMap<String, ArrayList<String>>()
+        body.forEach { s ->
+            rootGlossaryNodeZoneDistance.get(s)?.let {
+                it.mapFileCount.forEach lit@{ entry ->
+                    entry.value.forEach { pair ->
+                        if (pair.second.contains(2)) {
+                            bodyWordList.getOrPut(s) { ArrayList() }.add(entry.key)
+                            return@lit
+                        }
+                    }
+                }
+            }
+        }
+
+        val res = HashMap<String, DoubleArray>()
+        mapFileIndex.map { res.put(it.value, doubleArrayOf(0.0, 0.0, 0.0)) }
+
+        res.keys.forEach { fileName ->
+            res[fileName]!![0] =
+                cosineSimilarity(
+                    DoubleArray(author.size) { i ->
+                        if (authorWordList[author[i]]?.contains(fileName) ?: false) 1.0 else 0.0
+                    }, DoubleArray(author.size) {
+                        1.0
+                    }
+                )
+            res[fileName]!![1] =
+                cosineSimilarity(
+                    DoubleArray(titles.size) { i ->
+                        if (titlesWordList[titles[i]]?.contains(fileName) ?: false) 1.0 else 0.0
+                    }, DoubleArray(titles.size) {
+                        1.0
+                    }
+                )
+            res[fileName]!![2] =
+                cosineSimilarity(
+                    DoubleArray(body.size) { i ->
+                        if (bodyWordList[body[i]]?.contains(fileName) ?: false) 1.0 else 0.0
+                    }, DoubleArray(body.size) {
+                        1.0
+                    }
+                )
+        }
+
+        return res.map { entry -> Pair(entry.key, entry.value[0] * a + entry.value[1] * t + entry.value[2] * b) }
+            .sortedBy { pair -> pair.second }.reversed()
+
+    }
+
+    val a = 0.4
+    val t = 0.4
+    val b = 0.2
+
+    fun cosineSimilarity(vectorA: DoubleArray, vectorB: DoubleArray): Double {
+        var dotProduct = 0.0
+        var normA = 0.0
+        var normB = 0.0
+        for (i in vectorA.indices) {
+            dotProduct += vectorA[i] * vectorB[i]
+            normA += Math.pow(vectorA[i], 2.0)
+            normB += Math.pow(vectorB[i], 2.0)
+        }
+        if (normA == 0.0 || normB == 0.0) return 0.0
+        return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB))
+    }
 }

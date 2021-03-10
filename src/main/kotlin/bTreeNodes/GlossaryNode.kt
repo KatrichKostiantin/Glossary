@@ -1,6 +1,6 @@
-package BTreeNodes
+package bTreeNodes
 
-import GlossaryWordIndex
+import Words.GlossaryWordIndex
 
 
 class GlossaryNode(

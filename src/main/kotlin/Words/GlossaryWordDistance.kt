@@ -1,3 +1,5 @@
+package Words
+
 class GlossaryWordDistance(
     val value: String
 ) {
@@ -27,7 +29,7 @@ class GlossaryWordDistance(
     }
 
     override fun toString(): String {
-        return "GlossaryWord(value='$value', mapFileCount=$mapFileCount)"
+        return "Words.GlossaryWord(value='$value', mapFileCount=$mapFileCount)"
     }
 
     fun toSaveFormat(): String {

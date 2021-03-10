@@ -1,3 +1,5 @@
+package Words
+
 class GlossaryWord(
     val value: String
 ) {
