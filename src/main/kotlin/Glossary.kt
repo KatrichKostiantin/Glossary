@@ -442,14 +442,14 @@ class Glossary(
                 )
         }
 
-        return res.map { entry -> Pair(entry.key, entry.value[0] * a + entry.value[1] * t + entry.value[2] * b) }
+        return res.map { entry -> Pair(entry.key, entry.value[0] * authorCof + entry.value[1] * titleCof + entry.value[2] * bodyCof) }
             .sortedBy { pair -> pair.second }.reversed()
 
     }
 
-    val a = 0.4
-    val t = 0.4
-    val b = 0.2
+    private val authorCof = 0.4
+    private val titleCof = 0.4
+    private val bodyCof = 0.2
 
     fun cosineSimilarity(vectorA: DoubleArray, vectorB: DoubleArray): Double {
         var dotProduct = 0.0

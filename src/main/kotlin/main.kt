@@ -3,7 +3,7 @@ fun main() {
     glossary.readAllFiles()
     glossary.searchFilesZones(
         author = arrayOf("a"),
-        titles = arrayOf("and", "order"),
-        body = arrayOf("heyheyheyhey", "the")
+        titles = arrayOf("order"),
+        body = arrayOf("gfrgthhyjukj")
     ).forEach (::println)
 }

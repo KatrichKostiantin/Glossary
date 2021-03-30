@@ -1,4 +1,4 @@
-import com.kursx.parser.fb2.FictionBook
+import XMLParser.FB2Parser
 import java.io.File
 import java.nio.charset.Charset
 import java.util.*
@@ -8,25 +8,19 @@ import kotlin.collections.ArrayList
 class FileReaderCustom(
     private val charset: Charset = Charset.defaultCharset()
 ) {
-    public fun readTxtFileWithDistance(file: File): Map<String, LinkedList<Int>> {
+    val parser = FB2Parser()
+
+    fun readTxtFileWithDistance(file: File): Map<String, LinkedList<Int>> {
         val splitWordArray = readTxtAllWord(file)
         return getWordDistance(splitWordArray)
     }
 
     fun readFB2File(file: File): Map<String, LinkedList<Pair<Int, ArrayList<Int>>>> {
-        val fictionFile = FictionBook(file)
+        parser.read(file)
 
-        val body = StringBuilder()
-        fictionFile.body.sections.forEach { section ->
-            body.append(section.titles)
-            section.elements.forEach { element ->
-                body.append(element.text)
-            }
-        }
-
-        val titleMap = getWordDistance(splitAndCleanWord(fictionFile.title.toString()))
-        val authorMap = getWordDistance(splitAndCleanWord(fictionFile.description.titleInfo.authors.toString()))
-        val bodyMap = getWordDistance(splitAndCleanWord(body.toString()))
+        val titleMap = getWordDistance(splitAndCleanWord(parser.getTitleContent()!!))
+        val authorMap = getWordDistance(splitAndCleanWord(parser.getAuthorContent()!!))
+        val bodyMap = getWordDistance(splitAndCleanWord(parser.getBodyContent()!!))
         val res = mutableMapOf<String, LinkedList<Pair<Int, ArrayList<Int>>>>()
         bodyMap.keys.forEach { s ->
             val list = LinkedList<Pair<Int, ArrayList<Int>>>()
